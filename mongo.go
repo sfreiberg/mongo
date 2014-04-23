@@ -102,7 +102,7 @@ func Update(i interface{}) error {
 // Deletes a record. Uses the Id to identify the record to delete. Must pass in a pointer
 // to a struct.
 func Delete(i interface{}) error {
-if !isPtr(i) {
+	if !isPtr(i) {
 		return NoPtr
 	}
 
