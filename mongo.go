@@ -10,7 +10,9 @@ import (
 	"labix.org/v2/mgo/bson"
 
 	"errors"
+	"fmt"
 	"reflect"
+	"time"
 )
 
 var (
@@ -38,6 +40,16 @@ func Insert(i interface{}) error {
 	}
 
 	err := addId(i)
+	if err != nil {
+		return err
+	}
+
+	err = addCurrentDateTime(i, "CreatedAt")
+	if err != nil {
+		return err
+	}
+
+	err = addCurrentDateTime(i, "UpdatedAt")
 	if err != nil {
 		return err
 	}
@@ -83,6 +95,11 @@ func Find(i interface{}, q bson.M) error {
 func Update(i interface{}) error {
 	if !isPtr(i) {
 		return NoPtr
+	}
+
+	err := addCurrentDateTime(i, "UpdatedAt")
+	if err != nil {
+		return err
 	}
 
 	s, err := getMongoSession()
@@ -186,6 +203,50 @@ func isSlice(t reflect.Type) bool {
 		t = t.Elem()
 	}
 	return t.Kind() == reflect.Slice
+}
+
+func addCurrentDateTime(i interface{}, name string) error {
+	if !hasStructField(i, name) {
+		return nil
+	}
+
+	now := time.Now()
+
+	v := reflect.ValueOf(i)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	f := v.FieldByName(name)
+	if f.Kind() == reflect.Ptr {
+		f = f.Elem()
+	}
+
+	if reflect.TypeOf(now) != f.Type() {
+		return fmt.Errorf("%v must be time.Time type.", name)
+	}
+
+	if !f.CanSet() {
+		return fmt.Errorf("Couldn't set time for field: %v", name)
+	}
+
+	f.Set(reflect.ValueOf(now))
+
+	return nil
+}
+
+func hasStructField(i interface{}, field string) bool {
+	t := reflect.TypeOf(i)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	if t.Kind() != reflect.Struct {
+		return false
+	}
+
+	_, found := t.FieldByName(field)
+	return found
 }
 
 func addId(i interface{}) error {

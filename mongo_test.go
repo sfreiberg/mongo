@@ -9,13 +9,11 @@ import (
 
 var (
 	testObj = &MongoTest{
-		Id:        bson.NewObjectId(),
-		Name:      "testing",
-		CreatedAt: time.Now(),
+		Id:   bson.NewObjectId(),
+		Name: "testing",
 	}
 	testObjNoId = &MongoTest{
-		Name:      "testing no id",
-		CreatedAt: time.Now(),
+		Name: "testing no id",
 	}
 )
 
@@ -23,6 +21,7 @@ type MongoTest struct {
 	Id        bson.ObjectId `bson:"_id"`
 	Name      string
 	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func TestConnection(t *testing.T) {
