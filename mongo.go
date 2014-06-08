@@ -39,18 +39,7 @@ func Insert(i interface{}) error {
 		return NoPtr
 	}
 
-	err := addId(i)
-	if err != nil {
-		return err
-	}
-
-	err = addCurrentDateTime(i, "CreatedAt")
-	if err != nil {
-		return err
-	}
-
-	err = addCurrentDateTime(i, "UpdatedAt")
-	if err != nil {
+	if err := addNewFields(i); err != nil {
 		return err
 	}
 
@@ -62,6 +51,42 @@ func Insert(i interface{}) error {
 
 	coll := getColl(s, typeName(i))
 	return coll.Insert(i)
+}
+
+// Insert multiple records. You must pass in a slice of pointers to structs.
+func InsertMultiple(records interface{}) error {
+	var r []interface{}
+
+	s := reflect.ValueOf(records)
+
+	switch s.Kind() {
+	case reflect.Slice:
+		r = make([]interface{}, s.Len())
+		for i := 0; i < s.Len(); i++ {
+			r[i] = s.Index(i).Interface()
+		}
+	default:
+		return errors.New("InsertMultiple only takes a slice of pointers to structs")
+	}
+
+	if len(r) == 0 {
+		return nil
+	}
+
+	for _, record := range r {
+		if err := addNewFields(record); err != nil {
+			return err
+		}
+	}
+
+	sess, err := getMongoSession()
+	if err != nil {
+		return err
+	}
+	defer sess.Close()
+
+	coll := getColl(sess, typeName(r[0]))
+	return coll.Insert(r...)
 }
 
 // Find one or more records. If a single struct is passed in we'll return one record.
@@ -203,6 +228,19 @@ func isSlice(t reflect.Type) bool {
 		t = t.Elem()
 	}
 	return t.Kind() == reflect.Slice
+}
+
+func addNewFields(i interface{}) error {
+	err := addId(i)
+	if err != nil {
+		return err
+	}
+
+	if err := addCurrentDateTime(i, "CreatedAt"); err != nil {
+		return err
+	}
+
+	return addCurrentDateTime(i, "UpdatedAt")
 }
 
 func addCurrentDateTime(i interface{}, name string) error {
