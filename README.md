@@ -11,7 +11,7 @@ To install mongo, simply run `go get github.com/sfreiberg/mongo`.
 [GoDoc](http://godoc.org/github.com/sfreiberg/mongo)
 
 ## Example
-`
+```
 package main
 
 import (
@@ -50,4 +50,4 @@ func main() {
 		panic(err)
 	}
 }
-`
+```
