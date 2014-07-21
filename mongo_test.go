@@ -16,11 +16,6 @@ var (
 	testObjNoId = &MongoTest{
 		Name: "testing no id",
 	}
-
-	testMultiple = []interface{}{
-		&MongoTest{Name: "test multiple 1"},
-		&MongoTest{Name: "test multiple 2"},
-	}
 )
 
 type MongoTest struct {
@@ -45,12 +40,6 @@ func TestInsert(t *testing.T) {
 func TestInsertWithoutPtr(t *testing.T) {
 	if err := Insert(*testObj); err != NoPtr {
 		t.Fatal("Didn't receive the NoPtr error. Got this instead", err)
-	}
-}
-
-func TestInsertMultiple(t *testing.T) {
-	if err := InsertMultiple(testMultiple); err != nil {
-		t.Fatal("Error calling InsertMultiple:", err)
 	}
 }
 

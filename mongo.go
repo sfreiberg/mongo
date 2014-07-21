@@ -34,59 +34,30 @@ func SetServers(servers, db string) error {
 
 // Insert a single record. Must pass in a pointer to a struct. The struct must
 // contain an Id field of type bson.ObjectId.
-func Insert(i interface{}) error {
-	if !isPtr(i) {
-		return NoPtr
-	}
-
-	if err := addNewFields(i); err != nil {
-		return err
-	}
-
-	s, err := getMongoSession()
-	if err != nil {
-		return err
-	}
-	defer s.Close()
-
-	coll := getColl(s, typeName(i))
-	return coll.Insert(i)
-}
-
-// Insert multiple records. You must pass in a slice of pointers to structs.
-func InsertMultiple(records interface{}) error {
-	var r []interface{}
-
-	s := reflect.ValueOf(records)
-
-	switch s.Kind() {
-	case reflect.Slice:
-		r = make([]interface{}, s.Len())
-		for i := 0; i < s.Len(); i++ {
-			r[i] = s.Index(i).Interface()
+func Insert(records ...interface{}) error {
+	for _, rec := range records {
+		if !isPtr(rec) {
+			return NoPtr
 		}
-	default:
-		return errors.New("InsertMultiple only takes a slice of pointers to structs")
-	}
 
-	if len(r) == 0 {
-		return nil
-	}
+		if err := addNewFields(rec); err != nil {
+			return err
+		}
 
-	for _, record := range r {
-		if err := addNewFields(record); err != nil {
+		s, err := getMongoSession()
+		if err != nil {
+			return err
+		}
+		defer s.Close()
+
+		coll := getColl(s, typeName(rec))
+		err = coll.Insert(rec)
+		if err != nil {
 			return err
 		}
 	}
 
-	sess, err := getMongoSession()
-	if err != nil {
-		return err
-	}
-	defer sess.Close()
-
-	coll := getColl(sess, typeName(r[0]))
-	return coll.Insert(r...)
+	return nil
 }
 
 // Find one or more records. If a single struct is passed in we'll return one record.
