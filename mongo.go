@@ -44,7 +44,7 @@ func Insert(records ...interface{}) error {
 			return err
 		}
 
-		s, err := getMongoSession()
+		s, err := GetMongoSession()
 		if err != nil {
 			return err
 		}
@@ -68,7 +68,7 @@ func Find(i interface{}, q bson.M) error {
 		return NoPtr
 	}
 
-	s, err := getMongoSession()
+	s, err := GetMongoSession()
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func Update(i interface{}) error {
 		return err
 	}
 
-	s, err := getMongoSession()
+	s, err := GetMongoSession()
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func Delete(i interface{}) error {
 		return NoPtr
 	}
 
-	s, err := getMongoSession()
+	s, err := GetMongoSession()
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,8 @@ func Delete(i interface{}) error {
 	return getColl(s, typeName(i)).RemoveId(id)
 }
 
-func getMongoSession() (*mgo.Session, error) {
+// Returns a Mongo session. You must call Session.Close() when you're done.
+func GetMongoSession() (*mgo.Session, error) {
 	var err error
 
 	if mgoSession == nil {
