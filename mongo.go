@@ -50,7 +50,7 @@ func Insert(records ...interface{}) error {
 		}
 		defer s.Close()
 
-		coll := getColl(s, typeName(rec))
+		coll := GetColl(s, typeName(rec))
 		err = coll.Insert(rec)
 		if err != nil {
 			return err
@@ -74,7 +74,7 @@ func Find(i interface{}, q bson.M) error {
 	}
 	defer s.Close()
 
-	coll := getColl(s, typeName(i))
+	coll := GetColl(s, typeName(i))
 
 	query := coll.Find(q)
 
@@ -114,7 +114,7 @@ func Update(i interface{}) error {
 		return err
 	}
 
-	return getColl(s, typeName(i)).Update(bson.M{"_id": id}, i)
+	return GetColl(s, typeName(i)).Update(bson.M{"_id": id}, i)
 }
 
 // Deletes a record. Uses the Id to identify the record to delete. Must pass in a pointer
@@ -135,7 +135,7 @@ func Delete(i interface{}) error {
 		return err
 	}
 
-	return getColl(s, typeName(i)).RemoveId(id)
+	return GetColl(s, typeName(i)).RemoveId(id)
 }
 
 // Returns a Mongo session. You must call Session.Close() when you're done.
@@ -154,7 +154,7 @@ func GetSession() (*mgo.Session, error) {
 
 // We pass in the session because that is a clone of the original and the
 // caller will need to close it when finished.
-func getColl(session *mgo.Session, coll string) *mgo.Collection {
+func GetColl(session *mgo.Session, coll string) *mgo.Collection {
 	return session.DB(database).C(coll)
 }
 
