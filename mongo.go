@@ -33,7 +33,7 @@ func SetServers(servers, db string) error {
 }
 
 // Insert one or more structs. Must pass in a pointer to a struct. The struct must
-// contain an Id field of type bson.ObjectId with a tag of `mgo:"_id"`.
+// contain an Id field of type bson.ObjectId with a tag of `bson:"_id"`.
 func Insert(records ...interface{}) error {
 	for _, rec := range records {
 		if !isPtr(rec) {
