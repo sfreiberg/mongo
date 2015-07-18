@@ -1,5 +1,5 @@
 ## Overview
-The mongo package is a very simple wrapper around the labix.org/v2/mgo package. It's purpose is to allow you to do CRUD operations with very little code. It's not exhaustive and not meant to do everything for you.
+The mongo package is a very simple wrapper around the gopkg.in/mgo.v2 package. It's purpose is to allow you to do CRUD operations with very little code. It's not exhaustive and not meant to do everything for you.
 
 ## License
 Mongo is licensed under the MIT license.
@@ -16,7 +16,7 @@ package main
 
 import (
 	"github.com/sfreiberg/mongo"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type Customer struct {
