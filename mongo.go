@@ -88,7 +88,7 @@ func Find(i interface{}, q bson.M) error {
 
 // Find a single record by id. Must pass a pointer to a struct.
 func FindById(i interface{}, id string) error {
-	return Find(i, bson.M{"_id": id})
+	return Find(i, bson.M{"_id": bson.ObjectIdHex(id)})
 }
 
 // Updates a record. Uses the Id to identify the record to update. Must pass in a pointer
