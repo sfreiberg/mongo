@@ -174,7 +174,20 @@ func getObjIdFromStruct(i interface{}) (bson.ObjectId, error) {
 		f = f.Elem()
 	}
 
-	return f.Interface().(bson.ObjectId), nil
+	iface := f.Interface()
+	if id, ok := iface.(bson.ObjectId); ok {
+		return id, nil
+	}
+
+	if id, ok := iface.(bson.Getter); ok {
+		objId, err := id.GetBSON()
+		if err != nil {
+			return bson.NewObjectId(), err
+		}
+		return objId.(bson.ObjectId), nil
+	}
+
+	return bson.NewObjectId(), fmt.Errorf("Unknown type in Id field. Expected string or bson.ObjectId. Received: %t", i)
 }
 
 func isPtr(i interface{}) bool {
@@ -281,9 +294,11 @@ func addId(i interface{}) error {
 	}
 
 	if f.Kind() == reflect.String {
-		if !f.Interface().(bson.ObjectId).Valid() {
-			id := reflect.ValueOf(bson.NewObjectId())
-			f.Set(id)
+		id := f.Interface()
+		if _, ok := id.(bson.ObjectId); ok {
+			f.Set(reflect.ValueOf(bson.NewObjectId()))
+		} else {
+			f.SetString(bson.NewObjectId().Hex())
 		}
 	}
 
