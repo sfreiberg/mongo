@@ -304,3 +304,23 @@ func addId(i interface{}) error {
 
 	return nil
 }
+
+// Id let's you use a string data type for your models instead of the native
+// bson.ObjectId. The main benefit is when you frequently want a hex
+// represenation such as for use in web apps. You still need to provide
+// the `bson:"_id"` tag.
+type Id string
+
+func (i Id) GetBSON() (interface{}, error) {
+	return bson.ObjectIdHex(string(i)), nil
+}
+
+func (i *Id) SetBSON(raw bson.Raw) error {
+	var objId bson.ObjectId
+	err := raw.Unmarshal(&objId)
+	if err != nil {
+		return err
+	}
+	*i = Id(objId.Hex())
+	return nil
+}
