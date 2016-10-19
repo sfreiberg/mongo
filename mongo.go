@@ -138,6 +138,19 @@ func Delete(i interface{}) error {
 	return GetColl(s, typeName(i)).RemoveId(id)
 }
 
+// Does a count on the collection for the struct that is passed in.
+func Count(i interface{}) (int, error) {
+	s, err := GetSession()
+	if err != nil {
+		return 0, err
+	}
+	defer s.Close()
+
+	coll := GetColl(s, typeName(i))
+
+	return coll.Count()
+}
+
 // Returns a Mongo session. You must call Session.Close() when you're done.
 func GetSession() (*mgo.Session, error) {
 	var err error
