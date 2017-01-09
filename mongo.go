@@ -62,8 +62,9 @@ func Insert(records ...interface{}) error {
 
 // Find one or more records. If a single struct is passed in we'll return one record.
 // If a slice is passed in all records will be returned. Must pass in a pointer to a
-// struct or slice of structs.
-func Find(i interface{}, q bson.M) error {
+// struct or slice of structs. Use sortFields to sort the results. See
+// http://www.mongodb.org/display/DOCS/Sorting+and+Natural+Order for more info.
+func Find(i interface{}, q bson.M, sortFields ...string) error {
 	if !isPtr(i) {
 		return NoPtr
 	}
@@ -76,7 +77,7 @@ func Find(i interface{}, q bson.M) error {
 
 	coll := GetColl(s, typeName(i))
 
-	query := coll.Find(q)
+	query := coll.Find(q).Sort(sortFields...)
 
 	if isSlice(reflect.TypeOf(i)) {
 		err = query.All(i)
