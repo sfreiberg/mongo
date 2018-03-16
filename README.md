@@ -1,4 +1,6 @@
-## Overview
+# Mongo
+[![GoDoc](https://godoc.org/github.com/sfreiberg/mongo?status.png)](https://godoc.org/github.com/sfreiberg/mongo)
+
 The mongo package is a very simple wrapper around the github.com/globalsign/mgo package. It's purpose is to allow you to do CRUD operations with very little code. It's not exhaustive and not meant to do everything for you.
 
 ## License
