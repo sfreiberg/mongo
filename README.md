@@ -16,7 +16,7 @@ package main
 
 import (
 	"github.com/sfreiberg/mongo"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo/bson"
 )
 
 type Customer struct {

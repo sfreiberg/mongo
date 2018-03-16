@@ -1,13 +1,13 @@
 /*
-	The mongo package is a very simple wrapper around the labix.org/v2/mgo
+	The mongo package is a very simple wrapper around the github.com/globalsign/mgo/bson
 	package. It's purpose is to allow you to do CRUD operations with very
 	little code. It's not exhaustive and not meant to do everything for you.
 */
 package mongo
 
 import (
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 
 	"errors"
 	"fmt"
