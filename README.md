@@ -1,5 +1,5 @@
 ## Overview
-The mongo package is a very simple wrapper around the gopkg.in/mgo.v2 package. It's purpose is to allow you to do CRUD operations with very little code. It's not exhaustive and not meant to do everything for you.
+The mongo package is a very simple wrapper around the github.com/globalsign/mgo package. It's purpose is to allow you to do CRUD operations with very little code. It's not exhaustive and not meant to do everything for you.
 
 ## License
 Mongo is licensed under the MIT license.
