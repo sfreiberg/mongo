@@ -9,9 +9,6 @@ Mongo is licensed under the MIT license.
 ## Installation
 To install mongo, simply run `go get github.com/sfreiberg/mongo`.
 
-## Documentation
-[GoDoc](http://godoc.org/github.com/sfreiberg/mongo)
-
 ## Example
 ```
 package main
