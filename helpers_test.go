@@ -163,3 +163,66 @@ func TestRequiresPointer(t *testing.T) {
 }
 
 func typeOf(i any) reflect.Type { return reflect.TypeOf(i) }
+
+func TestAddNewFieldsKeepsExistingId(t *testing.T) {
+	oid := bson.NewObjectId()
+	m := &MongoTest{Id: oid}
+	if err := addNewFields(m); err != nil {
+		t.Fatal(err)
+	}
+	if m.Id != oid {
+		t.Errorf("caller-supplied ObjectId was replaced: %q -> %q", oid, m.Id)
+	}
+
+	s := &withStringID{Id: Id(oid.Hex())}
+	if err := addNewFields(s); err != nil {
+		t.Fatal(err)
+	}
+	if s.Id != Id(oid.Hex()) {
+		t.Errorf("caller-supplied Id was replaced: %q -> %q", oid.Hex(), s.Id)
+	}
+}
+
+func TestInvalidIdsReturnErrors(t *testing.T) {
+	// None of these may panic.
+	if err := FindById(&MongoTest{}, "not-hex"); err == nil {
+		t.Error("FindById: expected error for invalid hex")
+	}
+	if _, err := Id("not-hex").GetBSON(); err == nil {
+		t.Error("Id.GetBSON: expected error for invalid hex")
+	}
+	if _, err := bson.Marshal(withStringID{}); err == nil {
+		t.Error("marshaling an empty Id: expected error")
+	}
+	if _, err := getObjIdFromStruct(&noID{}); err == nil {
+		t.Error("getObjIdFromStruct: expected error for struct without Id")
+	}
+	type ptrID struct{ Id *bson.ObjectId }
+	if _, err := getObjIdFromStruct(&ptrID{}); err == nil {
+		t.Error("getObjIdFromStruct: expected error for nil Id pointer")
+	}
+	type intID struct{ Id int }
+	if _, err := getObjIdFromStruct(&intID{}); err == nil {
+		t.Error("getObjIdFromStruct: expected error for int Id")
+	}
+}
+
+func TestSetServersRemembersServers(t *testing.T) {
+	mu.Lock()
+	oldSession, oldServers, oldDB := mgoSession, servers, database
+	mgoSession = nil
+	mu.Unlock()
+	t.Cleanup(func() {
+		mu.Lock()
+		mgoSession, servers, database = oldSession, oldServers, oldDB
+		mu.Unlock()
+	})
+
+	// mgo rejects unknown URL options before dialing, so this fails fast.
+	_ = SetServers("mongodb://localhost/?nosuchoption=1", "db1")
+	mu.Lock()
+	defer mu.Unlock()
+	if servers != "mongodb://localhost/?nosuchoption=1" || database != "db1" {
+		t.Errorf("SetServers did not record its arguments: servers=%q database=%q", servers, database)
+	}
+}

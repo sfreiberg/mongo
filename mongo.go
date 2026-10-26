@@ -12,10 +12,12 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 )
 
 var (
+	mu         sync.Mutex // guards mgoSession, servers and database
 	mgoSession *mgo.Session
 	servers    string
 	database   string
@@ -23,13 +25,24 @@ var (
 )
 
 // Set the mongo servers and the database
-func SetServers(servers, db string) error {
-	var err error
+func SetServers(srv, db string) error {
+	mu.Lock()
+	defer mu.Unlock()
 
+	servers = srv
 	database = db
 
-	mgoSession, err = mgo.Dial(servers)
-	return err
+	if mgoSession != nil {
+		mgoSession.Close()
+		mgoSession = nil
+	}
+
+	s, err := mgo.Dial(servers)
+	if err != nil {
+		return err
+	}
+	mgoSession = s
+	return nil
 }
 
 // Insert one or more structs. Must pass in a pointer to a struct. The struct must
@@ -39,20 +52,21 @@ func Insert(records ...any) error {
 		if !isPtr(rec) {
 			return NoPtr
 		}
+	}
 
+	s, err := GetSession()
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	for _, rec := range records {
 		if err := addNewFields(rec); err != nil {
 			return err
 		}
 
-		s, err := GetSession()
-		if err != nil {
-			return err
-		}
-		defer s.Close()
-
 		coll := GetColl(s, typeName(rec))
-		err = coll.Insert(rec)
-		if err != nil {
+		if err := coll.Insert(rec); err != nil {
 			return err
 		}
 	}
@@ -89,6 +103,9 @@ func Find(i any, q bson.M, sortFields ...string) error {
 
 // Find a single record by id. Must pass a pointer to a struct.
 func FindById(i any, id string) error {
+	if !bson.IsObjectIdHex(id) {
+		return fmt.Errorf("invalid ObjectId hex: %q", id)
+	}
 	return Find(i, bson.M{"_id": bson.ObjectIdHex(id)})
 }
 
@@ -154,13 +171,15 @@ func Count(i any) (int, error) {
 
 // Returns a Mongo session. You must call Session.Close() when you're done.
 func GetSession() (*mgo.Session, error) {
-	var err error
+	mu.Lock()
+	defer mu.Unlock()
 
 	if mgoSession == nil {
-		mgoSession, err = mgo.Dial(servers)
+		s, err := mgo.Dial(servers)
 		if err != nil {
 			return nil, err
 		}
+		mgoSession = s
 	}
 
 	return mgoSession.Clone(), nil
@@ -169,7 +188,10 @@ func GetSession() (*mgo.Session, error) {
 // We pass in the session because that is a clone of the original and the
 // caller will need to close it when finished.
 func GetColl(session *mgo.Session, coll string) *mgo.Collection {
-	return session.DB(database).C(coll)
+	mu.Lock()
+	db := database
+	mu.Unlock()
+	return session.DB(db).C(coll)
 }
 
 func getObjIdFromStruct(i any) (bson.ObjectId, error) {
@@ -180,12 +202,15 @@ func getObjIdFromStruct(i any) (bson.ObjectId, error) {
 	}
 
 	if v.Kind() != reflect.Struct {
-		return bson.ObjectId(""), errors.New("Can't delete record. Type must be a struct.")
+		return bson.ObjectId(""), errors.New("Record must be a struct")
 	}
 
 	f := v.FieldByName("Id")
 	if f.Kind() == reflect.Ptr {
 		f = f.Elem()
+	}
+	if !f.IsValid() {
+		return bson.ObjectId(""), fmt.Errorf("%T has no (non-nil) Id field", i)
 	}
 
 	iface := f.Interface()
@@ -196,12 +221,15 @@ func getObjIdFromStruct(i any) (bson.ObjectId, error) {
 	if id, ok := iface.(bson.Getter); ok {
 		objId, err := id.GetBSON()
 		if err != nil {
-			return bson.NewObjectId(), err
+			return bson.ObjectId(""), err
 		}
-		return objId.(bson.ObjectId), nil
+		if oid, ok := objId.(bson.ObjectId); ok {
+			return oid, nil
+		}
+		return bson.ObjectId(""), fmt.Errorf("Id field of %T did not marshal to a bson.ObjectId", i)
 	}
 
-	return bson.NewObjectId(), fmt.Errorf("Unknown type in Id field. Expected string or bson.ObjectId. Received: %t", i)
+	return bson.ObjectId(""), fmt.Errorf("Unknown type in Id field. Expected mongo.Id or bson.ObjectId. Received: %T", iface)
 }
 
 func isPtr(i any) bool {
@@ -307,7 +335,8 @@ func addId(i any) error {
 		f = f.Elem()
 	}
 
-	if f.Kind() == reflect.String {
+	// Only generate an Id if the caller didn't supply one.
+	if f.Kind() == reflect.String && f.Len() == 0 {
 		id := f.Interface()
 		if _, ok := id.(bson.ObjectId); ok {
 			f.Set(reflect.ValueOf(bson.NewObjectId()))
@@ -326,6 +355,9 @@ func addId(i any) error {
 type Id string
 
 func (i Id) GetBSON() (any, error) {
+	if !bson.IsObjectIdHex(string(i)) {
+		return nil, fmt.Errorf("invalid ObjectId hex: %q", string(i))
+	}
 	return bson.ObjectIdHex(string(i)), nil
 }
 
