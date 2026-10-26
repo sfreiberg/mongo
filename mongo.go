@@ -1,7 +1,7 @@
 /*
-	The mongo package is a very simple wrapper around the github.com/globalsign/mgo/bson
-	package. It's purpose is to allow you to do CRUD operations with very
-	little code. It's not exhaustive and not meant to do everything for you.
+The mongo package is a very simple wrapper around the github.com/globalsign/mgo/bson
+package. It's purpose is to allow you to do CRUD operations with very
+little code. It's not exhaustive and not meant to do everything for you.
 */
 package mongo
 
@@ -34,7 +34,7 @@ func SetServers(servers, db string) error {
 
 // Insert one or more structs. Must pass in a pointer to a struct. The struct must
 // contain an Id field of type bson.ObjectId with a tag of `bson:"_id"`.
-func Insert(records ...interface{}) error {
+func Insert(records ...any) error {
 	for _, rec := range records {
 		if !isPtr(rec) {
 			return NoPtr
@@ -64,7 +64,7 @@ func Insert(records ...interface{}) error {
 // If a slice is passed in all records will be returned. Must pass in a pointer to a
 // struct or slice of structs. Use sortFields to sort the results. See
 // http://www.mongodb.org/display/DOCS/Sorting+and+Natural+Order for more info.
-func Find(i interface{}, q bson.M, sortFields ...string) error {
+func Find(i any, q bson.M, sortFields ...string) error {
 	if !isPtr(i) {
 		return NoPtr
 	}
@@ -88,13 +88,13 @@ func Find(i interface{}, q bson.M, sortFields ...string) error {
 }
 
 // Find a single record by id. Must pass a pointer to a struct.
-func FindById(i interface{}, id string) error {
+func FindById(i any, id string) error {
 	return Find(i, bson.M{"_id": bson.ObjectIdHex(id)})
 }
 
 // Updates a record. Uses the Id to identify the record to update. Must pass in a pointer
 // to a struct.
-func Update(i interface{}) error {
+func Update(i any) error {
 	if !isPtr(i) {
 		return NoPtr
 	}
@@ -120,7 +120,7 @@ func Update(i interface{}) error {
 
 // Deletes a record. Uses the Id to identify the record to delete. Must pass in a pointer
 // to a struct.
-func Delete(i interface{}) error {
+func Delete(i any) error {
 	if !isPtr(i) {
 		return NoPtr
 	}
@@ -140,7 +140,7 @@ func Delete(i interface{}) error {
 }
 
 // Does a count on the collection for the struct that is passed in.
-func Count(i interface{}) (int, error) {
+func Count(i any) (int, error) {
 	s, err := GetSession()
 	if err != nil {
 		return 0, err
@@ -172,7 +172,7 @@ func GetColl(session *mgo.Session, coll string) *mgo.Collection {
 	return session.DB(database).C(coll)
 }
 
-func getObjIdFromStruct(i interface{}) (bson.ObjectId, error) {
+func getObjIdFromStruct(i any) (bson.ObjectId, error) {
 	v := reflect.ValueOf(i)
 
 	if v.Kind() == reflect.Ptr {
@@ -204,11 +204,11 @@ func getObjIdFromStruct(i interface{}) (bson.ObjectId, error) {
 	return bson.NewObjectId(), fmt.Errorf("Unknown type in Id field. Expected string or bson.ObjectId. Received: %t", i)
 }
 
-func isPtr(i interface{}) bool {
+func isPtr(i any) bool {
 	return reflect.ValueOf(i).Kind() == reflect.Ptr
 }
 
-func typeName(i interface{}) string {
+func typeName(i any) string {
 	t := reflect.TypeOf(i)
 
 	if t.Kind() == reflect.Ptr {
@@ -234,7 +234,7 @@ func isSlice(t reflect.Type) bool {
 	return t.Kind() == reflect.Slice
 }
 
-func addNewFields(i interface{}) error {
+func addNewFields(i any) error {
 	err := addId(i)
 	if err != nil {
 		return err
@@ -247,7 +247,7 @@ func addNewFields(i interface{}) error {
 	return addCurrentDateTime(i, "UpdatedAt")
 }
 
-func addCurrentDateTime(i interface{}, name string) error {
+func addCurrentDateTime(i any, name string) error {
 	if !hasStructField(i, name) {
 		return nil
 	}
@@ -277,7 +277,7 @@ func addCurrentDateTime(i interface{}, name string) error {
 	return nil
 }
 
-func hasStructField(i interface{}, field string) bool {
+func hasStructField(i any, field string) bool {
 	t := reflect.TypeOf(i)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -291,7 +291,7 @@ func hasStructField(i interface{}, field string) bool {
 	return found
 }
 
-func addId(i interface{}) error {
+func addId(i any) error {
 	v := reflect.ValueOf(i)
 
 	if v.Kind() == reflect.Ptr {
@@ -325,7 +325,7 @@ func addId(i interface{}) error {
 // the `bson:"_id"` tag.
 type Id string
 
-func (i Id) GetBSON() (interface{}, error) {
+func (i Id) GetBSON() (any, error) {
 	return bson.ObjectIdHex(string(i)), nil
 }
 
